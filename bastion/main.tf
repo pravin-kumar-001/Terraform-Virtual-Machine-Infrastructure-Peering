@@ -1,0 +1,49 @@
+data "azurerm_resource_group" "resource_group" {
+
+  for_each = var.bastions
+
+  name = each.value.resource_group_name
+
+}
+
+data "azurerm_subnet" "subnet" {
+
+  for_each = var.bastions
+
+  name                 = each.value.subnet_name
+  virtual_network_name = each.value.virtual_network_name
+  resource_group_name  = each.value.resource_group_name
+
+}
+
+data "azurerm_public_ip" "public_ip" {
+
+  for_each = var.bastions
+
+  name                = each.value.public_ip_name
+  resource_group_name = each.value.resource_group_name
+
+}
+
+resource "azurerm_bastion_host" "bastion" {
+
+  for_each = var.bastions
+
+  name                = each.value.name
+  location            = data.azurerm_resource_group.resource_group[each.key].location
+  resource_group_name = data.azurerm_resource_group.resource_group[each.key].name
+  sku                 = each.value.sku
+
+  ip_configuration {
+
+    name = "configuration"
+
+    subnet_id = data.azurerm_subnet.subnet[each.key].id
+
+    public_ip_address_id = data.azurerm_public_ip.public_ip[each.key].id
+
+  }
+
+  tags = lookup(var.tags, each.key, {})
+
+}
